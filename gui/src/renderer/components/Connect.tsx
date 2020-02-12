@@ -203,11 +203,13 @@ export default class Connect extends Component<IProps, IState> {
       case 'connected':
         return HeaderBarStyle.success;
       case 'error':
-        switch (status.details.cause.reason) {
-          case 'set_firewall_policy_error':
-            return HeaderBarStyle.error;
-          default:
-            return HeaderBarStyle.success;
+        if (
+          status.details.cause.reason === 'set_firewall_policy_error' ||
+          !status.details.isBlocking
+        ) {
+          return HeaderBarStyle.error;
+        } else {
+          return HeaderBarStyle.success;
         }
       case 'disconnecting':
         switch (status.details) {
@@ -262,11 +264,13 @@ export default class Connect extends Component<IProps, IState> {
       case 'connected':
         return MarkerStyle.secure;
       case 'error':
-        switch (status.details.cause.reason) {
-          case 'set_firewall_policy_error':
-            return MarkerStyle.unsecure;
-          default:
-            return MarkerStyle.secure;
+        if (
+          status.details.cause.reason === 'set_firewall_policy_error' ||
+          !status.details.isBlocking
+        ) {
+          return MarkerStyle.unsecure;
+        } else {
+          return MarkerStyle.secure;
         }
       case 'disconnected':
         return MarkerStyle.unsecure;
