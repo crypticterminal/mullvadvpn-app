@@ -18,6 +18,7 @@ use talpid_types::net::{Endpoint, TransportProtocol};
 
 /// Priority for rules that tag split tunneling packets. Equals NF_IP_PRI_MANGLE.
 const MANGLE_CHAIN_PRIORITY: i32 = -150;
+const SPLIT_TUNNEL_MARK: i32 = 0xf41;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -231,9 +232,22 @@ impl<'a> PolicyBatch<'a> {
     pub fn finalize(mut self, policy: &FirewallPolicy) -> Result<FinalizedBatch> {
         self.add_loopback_rules()?;
         self.add_dhcp_client_rules();
+        self.add_split_tunneling_rules();
         self.add_policy_specific_rules(policy)?;
 
         Ok(self.batch.finalize())
+    }
+
+    fn add_split_tunneling_rules(&mut self) -> Result<()> {
+        let rule = Rule::new(&self.mangle_chain);
+        rule.add_expr(
+            &nft_expr!(meta cgroup split::NETCLS_CLASSID ct mark set SPLIT_TUNNEL_MARK)
+        );
+        rule.add_expr(
+            &nft_expr!(meta cgroup split::NETCLS_CLASSID mark set SPLIT_TUNNEL_MARK)
+        );
+        self.batch.add(&rule, nftnl::MsgType::Add);
+        Ok(())
     }
 
     fn add_loopback_rules(&mut self) -> Result<()> {
